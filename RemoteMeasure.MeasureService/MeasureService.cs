@@ -16,6 +16,7 @@ namespace RemoteMeasure.MeasureService
         public bool Start(HostControl hostControl)
         {
             System = ActorSystem.Create("measurement");
+            System.ActorOf(Props.Create<UnreceivedMessagesActor>(), "UnreceivedMessages");
             var sendActor = System.ActorOf(Props.Create<SendActor>(), "Send");
             var measureRetrieveActor = System.ActorOf(Props.Create(() => new MeasureRetrieveActor(sendActor)), "MeasureRetrieve");
             measureRetrieveActor.Tell(new Messages.StartMonitoring());
