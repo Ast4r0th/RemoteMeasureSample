@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Akka.Actor;
+﻿using Akka.Actor;
 using RemoteMeasure.MeasureService.Actors;
 using Topshelf;
 
@@ -16,9 +11,11 @@ namespace RemoteMeasure.MeasureService
         public bool Start(HostControl hostControl)
         {
             System = ActorSystem.Create("measurement");
-            System.ActorOf(Props.Create<UnreceivedMessagesActor>(), "UnreceivedMessages");
-            var sendActor = System.ActorOf(Props.Create<SendActor>(), "Send");
-            var measureRetrieveActor = System.ActorOf(Props.Create(() => new MeasureRetrieveActor(sendActor)), "MeasureRetrieve");
+
+            IActorRef unrecvdMsgActor = System.ActorOf(Props.Create<UnreceivedMessagesActor>(), "UnreceivedMessages");
+            IActorRef sendActor = System.ActorOf(Props.Create(() => new SendActor(unrecvdMsgActor)), "Send");
+            IActorRef measureRetrieveActor = System.ActorOf(Props.Create(() => new MeasureRetrieveActor(sendActor)), "MeasureRetrieve");
+
             measureRetrieveActor.Tell(new Messages.StartMonitoring());
             return true;
         }

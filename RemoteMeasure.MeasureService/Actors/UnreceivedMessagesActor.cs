@@ -10,11 +10,13 @@ namespace RemoteMeasure.MeasureService.Actors
     {
         private readonly ILoggingAdapter _log = Context.GetLogger();
         private readonly IList<DeadLetter> _unsendMessages = new List<DeadLetter>();
+        private bool _isConnected = false;
 
         public UnreceivedMessagesActor()
         {
             Receive<DeadLetter>(DeadLetterHandler, x => x.Message is MeasureData);
             Receive<CheckUnreadMessages>(x => ResendMessages());
+            Receive<SendSuccess>(data => _isConnected = true);
         }
 
         protected override void PreStart()
@@ -32,16 +34,20 @@ namespace RemoteMeasure.MeasureService.Actors
         private void DeadLetterHandler(DeadLetter letter)
         {
             _log.Debug("Receive Dead Letter");
+            _isConnected = false;
             _unsendMessages.Add(letter);
         }
 
         private void ResendMessages()
         {
-            foreach (DeadLetter deadLetter in _unsendMessages)
+            if (_isConnected && _unsendMessages.Count > 0)
             {
-                deadLetter.Sender.Tell(deadLetter.Message);
+                foreach (DeadLetter deadLetter in _unsendMessages)
+                {
+                    deadLetter.Sender.Tell(deadLetter.Message);
+                }
+                _unsendMessages.Clear();
             }
-            _unsendMessages.Clear();
         }
 
         private class CheckUnreadMessages { }

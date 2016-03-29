@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Akka.Actor;
 using RemoteMeasure.Common.Messages;
 
@@ -23,6 +19,7 @@ namespace RemoteMeasure.CalculationService.Actors
             Receive<MeasureData>(data =>
             {
                 Console.WriteLine("Received Measure Data is {0}", data.Value);
+                Sender.Tell(new SendSuccess());
                 _calcActor.Tell(data);
             });
         }

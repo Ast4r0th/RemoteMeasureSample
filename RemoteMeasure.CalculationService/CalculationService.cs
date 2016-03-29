@@ -11,8 +11,10 @@ namespace RemoteMeasure.CalculationService
         public bool Start(HostControl hostControl)
         {
             System = ActorSystem.Create("measurement");
+
             IActorRef calcActor = System.ActorOf(Props.Create<CalculationActor>(), "Calculation");
             System.ActorOf(Props.Create(() => new MeasureReceiveActor(calcActor)), "Receive");
+
             return true;
         }
 

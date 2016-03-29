@@ -8,9 +8,11 @@ namespace RemoteMeasure.MeasureService.Actors
     public class SendActor : ReceiveActor
     {
         private ActorSelection _calcSelection;
+        private IActorRef _unreceivedMsgActor;
 
-        public SendActor()
+        public SendActor(IActorRef unreceivedMsgActor)
         {
+            _unreceivedMsgActor = unreceivedMsgActor;
             Ready();
         }
 
@@ -27,6 +29,11 @@ namespace RemoteMeasure.MeasureService.Actors
             {
                 Console.WriteLine("Measure Data is {0}", data.Value);
                 _calcSelection.Tell(data);
+            });
+            Receive<SendSuccess>(data =>
+            {
+                Console.WriteLine("Success");
+                _unreceivedMsgActor.Tell(data);
             });
         }
     }
