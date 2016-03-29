@@ -2,21 +2,43 @@
 using System.Collections.Generic;
 using Akka.Actor;
 using Akka.Event;
+using Akka.Persistence;
 using RemoteMeasure.Common.Messages;
 
 namespace RemoteMeasure.MeasureService.Actors
 {
-    public class UnreceivedMessagesActor : ReceiveActor
+    public class UnreceivedMessagesActor : ReceivePersistentActor
     {
         private readonly ILoggingAdapter _log = Context.GetLogger();
-        private readonly IList<DeadLetter> _unsendMessages = new List<DeadLetter>();
+        private readonly List<DeadLetter> _unsendMessages = new List<DeadLetter>();
         private bool _isConnected = false;
 
         public UnreceivedMessagesActor()
         {
-            Receive<DeadLetter>(DeadLetterHandler, x => x.Message is MeasureData);
-            Receive<CheckUnreadMessages>(x => ResendMessages());
-            Receive<SendSuccess>(data => _isConnected = true);
+            Command<DeadLetter>(DeadLetterHandler, x => x.Message is MeasureData);
+            Command<CheckUnreadMessages>(x => ResendMessages());
+            Command<SendSuccess>(data => _isConnected = true);
+
+            Recover<SnapshotOffer>(offer =>
+            {
+                var snapshot = offer.Snapshot as List<DeadLetter>;
+                _unsendMessages.AddRange(snapshot);
+            });
+            Command<SaveSnapshotSuccess>(success =>
+            {
+                // soft-delete the journal up until the sequence # at
+                // which the snapshot was taken
+                DeleteMessages(success.Metadata.SequenceNr, false);
+            });
+            Command<SaveSnapshotFailure>(failure =>
+            {
+                // handle snapshot save failure...
+            });
+        }
+
+        public override string PersistenceId
+        {
+            get { return "UnreceivedMessages"; }
         }
 
         protected override void PreStart()
@@ -29,6 +51,8 @@ namespace RemoteMeasure.MeasureService.Actors
                 Self,
                 new CheckUnreadMessages(),
                 Self);
+
+            base.PreStart();
         }
 
         private void DeadLetterHandler(DeadLetter letter)
@@ -36,6 +60,10 @@ namespace RemoteMeasure.MeasureService.Actors
             _log.Debug("Receive Dead Letter");
             _isConnected = false;
             _unsendMessages.Add(letter);
+            if (_unsendMessages.Count % 5 == 0)
+            {
+                SaveSnapshot(_unsendMessages);
+            }
         }
 
         private void ResendMessages()
@@ -47,6 +75,7 @@ namespace RemoteMeasure.MeasureService.Actors
                     deadLetter.Sender.Tell(deadLetter.Message);
                 }
                 _unsendMessages.Clear();
+                SaveSnapshot(_unsendMessages);
             }
         }
 
