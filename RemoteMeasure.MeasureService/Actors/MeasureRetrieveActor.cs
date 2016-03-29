@@ -1,6 +1,5 @@
 ﻿using System;
 using Akka.Actor;
-using RemoteMeasure.Common.Messages;
 using RemoteMeasure.MeasureService.Messages;
 
 namespace RemoteMeasure.MeasureService.Actors
@@ -29,7 +28,7 @@ namespace RemoteMeasure.MeasureService.Actors
             });
             Receive<MeasureCheck>(start =>
             {
-                var data = new MeasureData(random.Next(-50, 50));
+                var data = new InternalMeasureData(random.Next(-50, 50));
                 _sendActor.Tell(data);
             });
         }
