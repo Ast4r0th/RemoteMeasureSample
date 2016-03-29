@@ -2,6 +2,7 @@
 using System.Configuration;
 using Akka.Actor;
 using RemoteMeasure.Common.Messages;
+using RemoteMeasure.MeasureService.Messages;
 
 namespace RemoteMeasure.MeasureService.Actors
 {
@@ -25,9 +26,19 @@ namespace RemoteMeasure.MeasureService.Actors
 
         private void Ready()
         {
+            Receive<InternalMeasureData>(data =>
+            {
+                var transferData = new MeasureData(data.Value);
+                Console.WriteLine("Measure Data {0} ({1:T})",
+                    transferData.Value,
+                    transferData.SendDate);
+                _calcSelection.Tell(transferData);
+            });
             Receive<MeasureData>(data =>
             {
-                Console.WriteLine("Measure Data is {0}", data.Value);
+                Console.WriteLine("Resend Measure Data {0} ({1:T})",
+                    data.Value,
+                    data.SendDate);
                 _calcSelection.Tell(data);
             });
             Receive<SendSuccess>(data =>

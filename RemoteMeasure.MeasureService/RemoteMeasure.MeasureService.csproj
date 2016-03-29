@@ -78,6 +78,7 @@
     <Compile Include="Actors\SendActor.cs" />
     <Compile Include="Actors\UnreceivedMessagesActor.cs" />
     <Compile Include="MeasureService.cs" />
+    <Compile Include="Messages\InternalMeasureData.cs" />
     <Compile Include="Messages\MeasureCheck.cs" />
     <Compile Include="Messages\StartMonitoring.cs" />
     <Compile Include="Program.cs" />
