@@ -26,13 +26,11 @@ namespace RemoteMeasure.MeasureService.Actors
             });
             Command<SaveSnapshotSuccess>(success =>
             {
-                // soft-delete the journal up until the sequence # at
-                // which the snapshot was taken
-                DeleteMessages(success.Metadata.SequenceNr, false);
-            });
-            Command<SaveSnapshotFailure>(failure =>
-            {
-                // handle snapshot save failure...
+                // delete all but the most current snapshot
+                var criteria = new SnapshotSelectionCriteria(
+                    success.Metadata.SequenceNr,
+                    success.Metadata.Timestamp.AddMilliseconds(-1));
+                DeleteSnapshots(criteria);
             });
         }
 
